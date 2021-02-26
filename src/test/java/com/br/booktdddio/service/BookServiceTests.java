@@ -6,19 +6,22 @@ import com.br.booktdddio.entity.Book;
 import com.br.booktdddio.exception.BookAlreadyCreatedException;
 import com.br.booktdddio.mapper.BookMapper;
 import com.br.booktdddio.repository.BookRepository;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.List;
 import java.util.Optional;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class BookServiceTests {
@@ -59,6 +62,33 @@ public class BookServiceTests {
 
         // then
         assertThrows(BookAlreadyCreatedException.class, () -> bookService.create(bookDTO));
+    }
+
+    @Test
+    void whenListIsCalledThenReturnAList() {
+        // given
+        BookDTO bookDTO = BookDTOBuilder.builder().build().toBookDTO();
+        Book book = bookMapper.toModel(bookDTO);
+
+        // when
+        when(bookRepository.findAll()).thenReturn(asList(book));
+
+        List<BookDTO> bookDTOList = bookService.listAll();
+
+        // then
+        assertThat(bookDTOList, is(not(empty())));
+        assertEquals(bookDTO.getName(), bookDTOList.get(0).getName());
+    }
+
+    @Test
+    void whenListIsCalledThenReturnAEmptyList() {
+        // when
+        when(bookRepository.findAll()).thenReturn(emptyList());
+
+        List<BookDTO> bookDTOList = bookService.listAll();
+
+        // then
+        assertThat(bookDTOList, is(empty()));
     }
 
 }
