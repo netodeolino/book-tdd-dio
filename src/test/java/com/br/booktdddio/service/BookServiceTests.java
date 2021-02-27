@@ -4,6 +4,7 @@ import com.br.booktdddio.builder.BookDTOBuilder;
 import com.br.booktdddio.dto.BookDTO;
 import com.br.booktdddio.entity.Book;
 import com.br.booktdddio.exception.BookAlreadyCreatedException;
+import com.br.booktdddio.exception.BookNotFoundException;
 import com.br.booktdddio.mapper.BookMapper;
 import com.br.booktdddio.repository.BookRepository;
 import org.junit.jupiter.api.Test;
@@ -21,7 +22,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class BookServiceTests {
@@ -89,6 +90,56 @@ public class BookServiceTests {
 
         // then
         assertThat(bookDTOList, is(empty()));
+    }
+
+    @Test
+    void whenExclusionIsCalledWithValidIdThenShouldBeDeleted() throws BookNotFoundException {
+        // given
+        BookDTO bookDTO = BookDTOBuilder.builder().build().toBookDTO();
+        Book book = bookMapper.toModel(bookDTO);
+
+        // when
+        when(bookRepository.findById(bookDTO.getId())).thenReturn(Optional.of(book));
+        doNothing().when(bookRepository).delete(book);
+
+        bookService.delete(bookDTO.getId());
+
+        // then
+        verify(bookRepository, times(1)).findById(bookDTO.getId());
+        verify(bookRepository, times(1)).delete(book);
+    }
+
+    @Test
+    void whenExclusionIsCalledWithoutValidIdThenShouldBeThrown() {
+        // when
+        when(bookRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        // then
+        assertThrows(BookNotFoundException.class, () -> bookService.delete(anyLong()));
+    }
+
+    @Test
+    void whenValidBookNameIsGivenThenReturnABeer() throws BookNotFoundException {
+        // given
+        BookDTO bookDTO = BookDTOBuilder.builder().build().toBookDTO();
+        Book book = bookMapper.toModel(bookDTO);
+
+        // when
+        when(bookRepository.findByName(bookDTO.getName())).thenReturn(Optional.of(book));
+
+        BookDTO foundBookDTO = bookService.findByName(bookDTO.getName());
+
+        // then
+        assertEquals(bookDTO.getName(), foundBookDTO.getName());
+    }
+
+    @Test
+    void whenNotValidBookNameIsGivenThenShouldBeThrown() {
+        // when
+        when(bookRepository.findByName(anyString())).thenReturn(Optional.empty());
+
+        // then
+        assertThrows(BookNotFoundException.class, () -> bookService.findByName(anyString()));
     }
 
 }

@@ -2,6 +2,7 @@ package com.br.booktdddio.controller;
 
 import com.br.booktdddio.dto.BookDTO;
 import com.br.booktdddio.exception.BookAlreadyCreatedException;
+import com.br.booktdddio.exception.BookNotFoundException;
 import com.br.booktdddio.service.BookService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -26,6 +27,17 @@ public class BookController {
     @GetMapping
     public List<BookDTO> listAll() {
         return bookService.listAll();
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) throws BookNotFoundException {
+        bookService.delete(id);
+    }
+
+    @GetMapping("/{name}")
+    public BookDTO findByName(@PathVariable String name) throws BookNotFoundException {
+        return bookService.findByName(name);
     }
 
 }

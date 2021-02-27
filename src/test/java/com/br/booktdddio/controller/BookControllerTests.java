@@ -2,6 +2,7 @@ package com.br.booktdddio.controller;
 
 import com.br.booktdddio.builder.BookDTOBuilder;
 import com.br.booktdddio.dto.BookDTO;
+import com.br.booktdddio.exception.BookNotFoundException;
 import com.br.booktdddio.service.BookService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,13 +16,15 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.servlet.view.json.MappingJackson2JsonView;
 
+import java.util.Optional;
+
 import static com.br.booktdddio.utils.JsonUtil.asJsonString;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -91,7 +94,7 @@ public class BookControllerTests {
     }
 
     @Test
-    void whenGetListWithoutBookIsCalledThenOkStatusIsReturned() throws Exception {
+    void whenGETListWithoutBookIsCalledThenOkStatusIsReturned() throws Exception {
         // when
         when(bookService.listAll()).thenReturn(emptyList());
 
@@ -99,6 +102,57 @@ public class BookControllerTests {
         mockMvc.perform(get(BOOK_ENDPOINT_URI)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void whenDELETEIsCalledWithValidIdThenNoContentIsReturned() throws Exception {
+        // when
+        doNothing().when(bookService).delete(anyLong());
+
+        // then
+        mockMvc.perform(delete(BOOK_ENDPOINT_URI + "/" + anyLong())
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void whenDELETEIsCalledWithoutValidIdThenNotFoundIsReturned() throws Exception {
+        // when
+        doThrow(BookNotFoundException.class).when(bookService).delete(anyLong());
+
+        // then
+        mockMvc.perform(delete(BOOK_ENDPOINT_URI + "/" + anyLong())
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void whenGETIsCalledWithValidNameThenOkStatusIsReturned() throws Exception {
+        // given
+        BookDTO bookDTO = BookDTOBuilder.builder().build().toBookDTO();
+
+        // when
+        when(bookService.findByName(bookDTO.getName())).thenReturn(bookDTO);
+
+        // then
+        mockMvc.perform(get(BOOK_ENDPOINT_URI + "/" + bookDTO.getName())
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name", is(bookDTO.getName())));
+    }
+
+    @Test
+    void whenGETIsCalledWithoutValidNameThenNotFoundStatusIsReturned() throws Exception {
+        // given
+        BookDTO bookDTO = BookDTOBuilder.builder().build().toBookDTO();
+
+        // when
+        when(bookService.findByName(bookDTO.getName())).thenThrow(BookNotFoundException.class);
+
+        // then
+        mockMvc.perform(get(BOOK_ENDPOINT_URI + "/" + bookDTO.getName())
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
     }
 
 }
